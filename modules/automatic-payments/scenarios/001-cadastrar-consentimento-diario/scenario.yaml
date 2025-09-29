@@ -1,0 +1,25 @@
+apiVersion: test-scenarios/v1
+kind: Scenario
+metadata:
+  id: "001-cadastrar-consentimento-diario"
+  title: "Cadastrar consentimento diário D+1 (quantidade=5)"
+  module: automatic-payments
+  labels: ["happy-path", "consents", "schedule-d+1"]
+  risk: "low"
+  endpoints:
+    - "POST /recurring-consents"
+    - "GET /recurring-consents/{consentId}"
+spec:
+  preconditions:
+    - "Ambiente integrado ao Diretório (SSA válido)"
+    - "Cliente com conta e limites habilitados"
+  steps:
+    - "POST /recurring-consents com schedule.daily.startDate = D+1 e quantity = 5"
+    - "Validar 201; extrair consentId"
+    - "Autorização do consent"
+    - "GET Consent; validar status AUTHORIZED"
+  expected:
+    httpStatus: 201
+    assertions:
+      - "Response schema válido"
+      - "Status AUTHORIZED após autorização"

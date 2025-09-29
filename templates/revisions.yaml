@@ -1,0 +1,7 @@
+# Lista cronológica de revisões deste cenário
+# Campos: date, version, release, status, changes
+- date: "2025-09-29"
+  version: "v2.2"
+  release: "rc.1"
+  status: "active"
+  changes: "Criação inicial do cenário com base na planilha."

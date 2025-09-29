@@ -1,0 +1,13 @@
+apiVersion: test-modules/v1
+kind: Module
+metadata:
+  name: automatic-payments
+  title: "Automatic Payments"
+  owners:
+    - name: "Edson Barbosa Junior"
+      role: "QA / Conformance"
+  tags: ["pix", "recurring", "open-finance"]
+spec:
+  description: >
+    Cenários de testes para pagamentos automáticos/recorrentes, incluindo limites
+    de cadastro (enrollments), consentimentos e pagamentos.
