@@ -1,27 +1,128 @@
-apiVersion: test-scenarios/v1
-kind: Scenario
-metadata:
-  id: 002-agendar-5-pagamentos-d+1
-  title: Agendar 5 pagamentos D+1
-  module: automatic-payments
-  labels:
-  - happy-path
-  - consents
-  - schedule-d+1
-  risk: low
-  endpoints:
-  - POST /recurring-payments
-  - GET /recurring-payments/{paymentId}
-spec:
-  preconditions:
-  - Ambiente integrado ao Diretório (SSA válido)
-  - Cliente com conta e limites habilitados
+- plan: "payments_test-plan_v4"
+  module: "payments_api_pixscheduling-patch-detentora_test-module_v4"
+  description: "PATCH Payments happy path test that will require the tester to revoke the scheduled Payment on the Financial Instituion application, leading the scheduled payment to have a cancelation object set as DETENTORA"
   steps:
-  - Criar 5 pagamentos com D+1 usando o consentId autorizado
-  - Validar 201 para cada criação e armazenar paymentIds
-  - Consultar pagamentos até obter estado SCHD
-  expected:
-    httpStatus: 201
-    assertions:
-    - Respostas com schema válido
-    - Pagamentos com status SCHD (agendado)
+    - type: "dummy"
+      name: "Create consent with request payload"
+      text: "• Create consent with request payload with both the schedule.single.date field set as D+1"
+    - type: "request"
+      name: "Create consent for a scheduled payment"
+      request:
+        method: "POST"
+        path: "/consents"
+        body:
+          data:
+            loggedUser:
+              document:
+                identification: "{{not_empty}}"
+                rel: "CPF"
+            creditor:
+              personType: "PESSOA_NATURAL"
+              cpfCnpj: "{{not_empty}}"
+              name: "{{not_empty}}"
+            payment:
+              type: "PIX"
+              currency: "BRL"
+              amount: "{{not_empty}}"
+              schedule:
+                single:
+                  date: "{{date_d_plus_1}}"
+              details:
+                localInstrument: "MANU"
+                creditorAccount:
+                  ispb: "{{not_empty}}"
+                  number: "{{not_empty}}"
+                  accountType: "CACC"
+    - type: "assert"
+      name: "Expect 201 - Consent created"
+      assert:
+        status: 201
+      cache: "created_consent"
+    - type: "dummy"
+      name: "Redirect user to authorize consent"
+      text: "• Redirects the user to authorize the created consent"
+    - type: "request"
+      name: "GET consent to confirm authorization"
+      request:
+        method: "GET"
+        path: "/consents/{{created_consent.data.consentId}}"
+    - type: "assert"
+      name: "Expect 200 - Validate status is AUTHORISED"
+      assert:
+        status: 200
+        body:
+          data:
+            status: "AUTHORISED"
+    - type: "request"
+      name: "POST Payment Endpoint"
+      request:
+        method: "POST"
+        path: "/pix/payments"
+        body:
+          data:
+            - endToEndId: "{{not_empty}}"
+              localInstrument: "MANU"
+              cnpjInitiator: "{{not_empty}}"
+              payment:
+                amount: "{{not_empty}}"
+                currency: "BRL"
+              creditorAccount:
+                ispb: "{{not_empty}}"
+                number: "{{not_empty}}"
+                accountType: "CACC"
+    - type: "assert"
+      name: "Expect 201 - Payment initiated"
+      assert:
+        status: 201
+      cache: "payment_response"
+    - type: "pooling"
+      name: "Poll until payment is scheduled"
+      loop_interval: "{{time_5_s}}"
+      timeout: "{{time_2_min}}"
+      while_is_in: true
+      field_name: "data.status"
+      values_to_check: ["RCVD", "ACCP"]
+      request:
+        method: "GET"
+        path: "/pix/payments/{{payment_response.data[0].paymentId}}"
+      assert:
+        status: 200
+    - type: "request"
+      name: "Confirm payment is in SCHD state"
+      request:
+        method: "GET"
+        path: "/pix/payments/{{payment_response.data[0].paymentId}}"
+    - type: "assert"
+      name: "Expect SCHD status"
+      assert:
+        status: 200
+        body:
+          data:
+            status: "SCHD"
+    - type: "pooling"
+      name: "Poll while payment is scheduled, waiting for manual cancellation"
+      loop_interval: "{{time_30_s}}"
+      timeout: "{{time_10_min}}"
+      while_is_in: true
+      field_name: "data.status"
+      values_to_check: ["SCHD"]
+      request:
+        method: "GET"
+        path: "/pix/payments/{{payment_response.data[0].paymentId}}"
+      assert:
+        status: 200
+    - type: "request"
+      name: "GET final payment status"
+      request:
+        method: "GET"
+        path: "/pix/payments/{{payment_response.data[0].paymentId}}"
+    - type: "assert"
+      name: "Expect 200 - CANC status from DETENTORA"
+      assert:
+        status: 200
+        body:
+          data:
+            status: "CANC"
+            cancellation:
+              cancelledFrom: "DETENTORA"
+              reason: "CANCELADO_AGENDAMENTO"

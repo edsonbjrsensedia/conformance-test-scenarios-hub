@@ -1,5 +1,5 @@
-- date: '2025-09-29'
-  version: v2.2
-  release: rc.1
+- date: '2025-10-01'
+  version: v4
+  release: 
   status: active
-  changes: Criação inicial do cenário de agendamento de 5 pagamentos D+1.
+  changes: Teste de fluxo feliz em PATCH /payments onde o pagamento agendado deve ser revogado no app da instituição, resultando em objeto de cancelamento DETENTORA.
