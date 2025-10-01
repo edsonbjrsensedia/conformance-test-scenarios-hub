@@ -1,0 +1,5 @@
+- date: '2025-09-29'
+  version: v2.2
+  release: rc.1
+  status: active
+  changes: Criação inicial do cenário de agendamento de 5 pagamentos D+1.

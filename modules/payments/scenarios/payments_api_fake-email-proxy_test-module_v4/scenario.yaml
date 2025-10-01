@@ -1,0 +1,27 @@
+apiVersion: test-scenarios/v1
+kind: Scenario
+metadata:
+  id: 002-agendar-5-pagamentos-d+1
+  title: Agendar 5 pagamentos D+1
+  module: automatic-payments
+  labels:
+  - happy-path
+  - consents
+  - schedule-d+1
+  risk: low
+  endpoints:
+  - POST /recurring-payments
+  - GET /recurring-payments/{paymentId}
+spec:
+  preconditions:
+  - Ambiente integrado ao Diretório (SSA válido)
+  - Cliente com conta e limites habilitados
+  steps:
+  - Criar 5 pagamentos com D+1 usando o consentId autorizado
+  - Validar 201 para cada criação e armazenar paymentIds
+  - Consultar pagamentos até obter estado SCHD
+  expected:
+    httpStatus: 201
+    assertions:
+    - Respostas com schema válido
+    - Pagamentos com status SCHD (agendado)
